@@ -1,0 +1,4 @@
+name = "QuickChat"
+author = "xplodingeggo"
+version = "1.0.0"
+entry = "main.lua"
