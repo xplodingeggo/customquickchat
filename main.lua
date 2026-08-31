@@ -2,9 +2,9 @@
 -- automatically on an in-game event (goal, demo, save, etc), instead of
 -- typing them out in game every time.
 --
--- uses hebnix.chat.send(channel, message), which taps the channel's chat key
--- (T/Y/U), types the message, and hits enter. works while playing, since
--- sending chat isn't a competitive advantage.
+-- uses hebnix.chat.send(channel, message), which taps whatever key you've
+-- actually got that channel bound to, types the message, and hits enter.
+-- works while playing, since sending chat isn't a competitive advantage.
 
 local plugin = {}
 
