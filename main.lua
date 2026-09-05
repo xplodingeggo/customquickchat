@@ -30,11 +30,16 @@ local next_id = 1
 local capture_index = nil -- index into chats currently capturing a bind
 local held_binds = {}     -- index -> was it down last tick (edge detection)
 
--- local player identity, resolved once per match by matching Launch.log's
--- username against the players list. no direct "this is you" field exists
--- on StatsAPI player/event payloads.
+-- local player identity, resolved once per match. Players[] carries a
+-- PrimaryId ("Epic|<id>|0" etc), matched against Launch.log's own
+-- session.primary_id - this is stable regardless of what display name RL
+-- shows in-game, unlike matching by Name (which breaks if your Epic
+-- account's username differs from what RL actually displays, common on
+-- non-Windows Epic launchers). Name-matching only kicks in as a fallback
+-- if primary_id isn't available on either side.
 local log_key = nil
 local local_username = nil
+local local_primary_id = nil
 local my_shortcut = nil
 local my_team_num = nil
 
@@ -95,12 +100,30 @@ end
 
 -- local player resolution
 
+-- the account-id portion only ("Epic|abc123|0" -> "abc123"), so platform-
+-- prefix casing/naming differences between RL's own PrimaryId and the one
+-- built from Launch.log (e.g. "epic" vs "Epic") don't matter.
+local function account_id(primary_id)
+    if not primary_id or primary_id == "" then
+        return nil
+    end
+    return string.lower(tostring(primary_id)):match("^[^|]+|([^|]+)")
+end
+
 local function resolve_local_player(update_state)
-    if my_shortcut ~= nil or local_username == nil then
+    if my_shortcut ~= nil or (local_username == nil and local_primary_id == nil) then
         return
     end
+    local local_account_id = account_id(local_primary_id)
     for _, p in ipairs(update_state.Players or {}) do
-        if p.Name == local_username then
+        local p_account_id = account_id(p.PrimaryId or p.primary_id)
+        local matched
+        if local_account_id and p_account_id then
+            matched = p_account_id == local_account_id
+        else
+            matched = local_username ~= nil and p.Name == local_username
+        end
+        if matched then
             my_shortcut = p.Shortcut
             my_team_num = p.TeamNum
             break
@@ -236,11 +259,13 @@ function plugin.on_game_event(event_type, event)
 end
 
 function plugin.on_tick()
-    -- resolve local player's username once, from Launch.log
+    -- resolve local player's identity once, from Launch.log
     if local_username == nil and log_key then
         local res = hebnix.launch_log_result(log_key)
         if res ~= nil and res ~= "pending" then
-            local_username = (res.session or {}).username
+            local session = res.session or {}
+            local_username = session.username
+            local_primary_id = session.primary_id
             log_key = nil
         end
     end
