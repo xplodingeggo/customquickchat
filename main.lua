@@ -251,6 +251,14 @@ function plugin.on_tick()
         if status == "done" then
             chats[capture_index].bind = bind
             save_chats()
+            -- the key just used to capture this bind is often still
+            -- physically held down for a tick or two after capture
+            -- completes; mark it as already-held so the fire-on-press loop
+            -- below doesn't treat that as a fresh press and try to send
+            -- immediately (usually while focus is still on Hebnix's own
+            -- settings window, not Rocket League, which hebnix.chat.send
+            -- rejects outright and crashes the whole plugin on).
+            held_binds[capture_index] = true
             capture_index = nil
         elseif status == "timeout" then
             capture_index = nil
