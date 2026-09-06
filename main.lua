@@ -89,7 +89,8 @@ local function fire_chats_for(trigger)
             changed = true
             if chat.progress >= need then
                 chat.progress = 0
-                hebnix.chat.send(chat.channel, chat.text)
+                -- same unfocused-throws hazard as the bind-press path below
+                pcall(hebnix.chat.send, chat.channel, chat.text)
             end
         end
     end
@@ -302,7 +303,15 @@ function plugin.on_tick()
         if bind and bind ~= "" then
             local down = hebnix.is_bind_pressed(bind)
             if down and not held_binds[i] then
-                hebnix.chat.send(chat.channel, chat.text)
+                -- hebnix.chat.send throws (not just returns false) if RL isn't
+                -- focused when this fires - e.g. the bind key is still held
+                -- while alt-tabbed back to Hebnix's own Settings window, or
+                -- shared with some other app's shortcut. rl_connected() only
+                -- means the game process is running, not that it has focus,
+                -- so this can happen on any freshly-pressed bind, not just
+                -- right after capture. an uncaught error here force-disables
+                -- the whole plugin, so pcall it instead of letting it crash.
+                pcall(hebnix.chat.send, chat.channel, chat.text)
             end
             held_binds[i] = down
         end
