@@ -8,6 +8,11 @@
 
 local plugin = {}
 
+-- only logs when "debug logs" is on in settings, so the console stays quiet
+local function dlog(msg)
+    if hebnix.get_bool("debug_logs", false) then hebnix.log(msg) end
+end
+
 local CHANNELS = { "global", "team", "party" }
 
 local TRIGGERS = {
@@ -243,7 +248,7 @@ function plugin.on_game_event(event_type, event)
     elseif event_type == "StatfeedEvent" then
         -- swap this log line out once you've confirmed the real EventName
         -- strings your account's matches send for assists/saves.
-        hebnix.log("Statfeed: " .. tostring(d.EventName) .. " (main=" .. tostring((d.MainTarget or {}).Name) .. ")")
+        dlog("Statfeed: " .. tostring(d.EventName) .. " (main=" .. tostring((d.MainTarget or {}).Name) .. ")")
         handle_statfeed(d)
     elseif event_type == "MatchEnded" then
         fire_chats_for("match ends")
@@ -319,6 +324,8 @@ function plugin.on_tick()
 end
 
 function plugin.on_settings(ui)
+    ui.checkbox("debug_logs", "debug logs (spams the console, off by default)", false)
+    ui.space(6)
     ui.heading("Quick Chat")
     ui.label("Save a message, give it a hotkey and/or an in-game trigger.")
     ui.space(6)
